@@ -1,0 +1,77 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                                Easy News.mq5     |
+//|                             Copyright 2021, Forex Robot Easy Team |
+//|                                                   forexroboteasy.com |
+//+------------------------------------------------------------------+
+#property copyright 'Copyright 2021, Forex Robot Easy Team'
+#property link      'forexroboteasy.com'
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Define parameters for stop orders
+    double stopOrderPoints = 10; // Default number of points from current price
+    datetime newsEventTime = D'2022.01.01 08:00:00'; // Date and time of news event
+
+    // Place stop orders
+    PlaceStopOrder(stopOrderPoints, newsEventTime);
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    // Close any open positions or pending orders
+    CloseAllOrders();
+}
+
+//+------------------------------------------------------------------+
+//| Place stop orders at a specified time                            |
+//+------------------------------------------------------------------+
+void PlaceStopOrder(double points, datetime newsTime)
+{
+    // Calculate stop order levels
+    double buyStopLevel = NormalizeDouble(Bid + points * Point, _Digits);
+    double sellStopLevel = NormalizeDouble(Ask - points * Point, _Digits);
+
+    // Place Buy stop order
+    int ticketBuy = OrderSend(Symbol(), OP_BUYSTOP, 0.01, buyStopLevel, 3, 0, 0, 'Buy Stop', 0, newsTime, clrGreen);
+    if(ticketBuy < 0)
+    {
+        Print('Failed to place Buy stop order. Error code:', GetLastError());
+    }
+
+    // Place Sell stop order
+    int ticketSell = OrderSend(Symbol(), OP_SELLSTOP, 0.01, sellStopLevel, 3, 0, 0, 'Sell Stop', 0, newsTime, clrRed);
+    if(ticketSell < 0)
+    {
+        Print('Failed to place Sell stop order. Error code:', GetLastError());
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Close all open positions and pending orders                      |
+//+------------------------------------------------------------------+
+void CloseAllOrders()
+{
+    for(int i = OrdersTotal() - 1; i >= 0; i--)
+    {
+        if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            if(OrderType() <= OP_SELL)
+            {
+                OrderClose(OrderTicket(), OrderLots(), MarketInfo(OrderSymbol(), MODE_BID), 3, clrNone);
+            }
+            else
+            {
+                OrderDelete(OrderTicket());
+            }
+        }
+    }
+}
